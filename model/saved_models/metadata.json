@@ -1,0 +1,38 @@
+{
+  "features": [
+    "duration",
+    "src_bytes",
+    "dst_bytes",
+    "count",
+    "srv_count",
+    "serror_rate",
+    "srv_serror_rate",
+    "rerror_rate",
+    "srv_rerror_rate",
+    "same_srv_rate",
+    "dst_host_count",
+    "dst_host_srv_count"
+  ],
+  "classes": [
+    "dos",
+    "normal",
+    "probe",
+    "r2l",
+    "u2r"
+  ],
+  "metrics": {
+    "accuracy": 0.968,
+    "precision": 0.9680672268907564,
+    "recall": 0.968,
+    "f1_score": 0.967996799679968,
+    "timestamp": "2026-05-12T14:33:39.241325",
+    "classes": [
+      "dos",
+      "normal",
+      "probe",
+      "r2l",
+      "u2r"
+    ]
+  },
+  "training_date": "2026-05-12T14:33:39.474651"
+}
