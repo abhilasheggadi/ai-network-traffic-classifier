@@ -11,6 +11,15 @@ import numpy as np
 from datetime import datetime
 from pathlib import Path
 import json
+import sys
+
+# Add project root to path for config imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import (
+    MODEL_PATH, SCALER_PATH, ENCODER_PATH, METADATA_PATH,
+    CORS_ORIGINS, CORS_CREDENTIALS, CORS_METHODS, CORS_HEADERS,
+    TRAFFIC_CLASSES
+)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -22,10 +31,10 @@ app = FastAPI(
 # CORS middleware - allow requests from dashboard
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[origin.strip() for origin in CORS_ORIGINS],
+    allow_credentials=CORS_CREDENTIALS,
+    allow_methods=CORS_METHODS,
+    allow_headers=CORS_HEADERS,
 )
 
 # Global model variables
@@ -104,20 +113,22 @@ async def load_model_on_startup():
     """Load ML model when server starts"""
     global model, scaler, encoder, metadata, model_loaded
     
-    model_dir = Path("./model/saved_models")
-    
     try:
         print("\n🔄 Loading model on startup...")
         
-        model = joblib.load(model_dir / "traffic_classifier.pkl")
-        scaler = joblib.load(model_dir / "scaler.pkl")
-        encoder = joblib.load(model_dir / "label_encoder.pkl")
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
         
-        with open(model_dir / "metadata.json", 'r') as f:
+        model = joblib.load(MODEL_PATH)
+        scaler = joblib.load(SCALER_PATH)
+        encoder = joblib.load(ENCODER_PATH)
+        
+        with open(METADATA_PATH, 'r') as f:
             metadata = json.load(f)
         
         model_loaded = True
         print("✅ Model loaded successfully!")
+        print(f"📊 Model path: {MODEL_PATH}")
         
     except Exception as e:
         print(f"❌ Error loading model: {e}")

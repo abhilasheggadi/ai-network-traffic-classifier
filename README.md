@@ -1,6 +1,106 @@
 # AI Network Traffic Classifier
 
-Machine learning-based network traffic classification using NSL-KDD dataset.
+Machine learning-based network traffic classification using Random Forest model. Real-time threat detection dashboard with FastAPI backend and Streamlit frontend.
+
+**Status:** ✅ Production Ready | 🚀 Ready for Demo
+
+## 🎯 Quick Start
+
+### macOS/Linux:
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+### Windows:
+```bash
+start.bat
+```
+
+Then open: **http://localhost:8501**
+
+---
+
+## 📋 Full Setup Guide
+
+See **[SETUP.md](SETUP.md)** for detailed step-by-step instructions.
+
+**Key Files:**
+- `config.py` - Centralized configuration
+- `.env` - Environment variables (auto-created)
+- `SETUP.md` - Complete setup guide
+- `start.sh` / `start.bat` - Quick start scripts
+
+---
+
+## 📁 Project Structure
+
+```
+Networking/
+├── backend/              # FastAPI API server
+│   └── main.py          # API endpoints & model loading
+├── src/
+│   └── dashboard/        # Streamlit dashboard
+│       └── app.py        # Dashboard UI (6 pages)
+├── model/                # ML model files
+│   ├── train.py         # Model training script
+│   ├── inspect_model.py  # Model inspection tool
+│   └── saved_models/     # Pre-trained models (pkl files)
+├── config.py             # Configuration settings
+├── requirements.txt      # Python dependencies
+├── SETUP.md              # Setup instructions
+├── start.sh / start.bat  # Quick start scripts
+└── README.md             # This file
+```
+
+## ✅ Project Status
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Model | ✅ Complete | Random Forest, 96.8% accuracy |
+| FastAPI Backend | ✅ Complete | All endpoints working |
+| Streamlit Dashboard | ✅ Complete | 6-page professional UI |
+| Configuration | ✅ Complete | Centralized settings |
+| Documentation | ✅ Complete | SETUP.md guide included |
+| Demo Data | ✅ Complete | Synthetic data only (safe) |
+
+## 🚀 Architecture
+
+```
+┌─────────────────────────────────────┐
+│    Streamlit Dashboard (Port 8501)  │
+│    - Dashboard overview              │
+│    - Traffic analysis                │
+│    - Model predictions               │
+│    - Alerts monitoring               │
+└──────────────┬──────────────────────┘
+               │
+               │ HTTP requests
+               ↓
+┌─────────────────────────────────────┐
+│    FastAPI Backend (Port 8000)      │
+│    - /predict endpoint               │
+│    - /health check                   │
+│    - /info endpoint                  │
+└──────────────┬──────────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────┐
+│    ML Model (Random Forest)         │
+│    - Trained on NSL-KDD dataset     │
+│    - 12 numeric features             │
+│    - 5 traffic classes               │
+│    - 96.8% accuracy                  │
+└─────────────────────────────────────┘
+```
+
+## 🌐 Access Points
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Dashboard | http://localhost:8501 | UI for traffic analysis |
+| API | http://127.0.0.1:8000 | Model predictions |
+| API Docs | http://127.0.0.1:8000/docs | Swagger documentation |
 
 ## 📁 Folder Structure
 
