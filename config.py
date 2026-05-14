@@ -26,10 +26,10 @@ LOGS_DIR.mkdir(exist_ok=True)
 # API SETTINGS
 # ============================================================================
 
-API_HOST = os.getenv("API_HOST", "127.0.0.1")
+API_HOST = os.getenv("API_HOST", "0.0.0.0")  # Changed to 0.0.0.0 for Docker
 API_PORT = int(os.getenv("API_PORT", "8000"))
 API_RELOAD = os.getenv("API_RELOAD", "True").lower() == "true"
-API_LOG_LEVEL = os.getenv("API_LOG_LEVEL", "error")
+API_LOG_LEVEL = os.getenv("API_LOG_LEVEL", "info")
 
 # ============================================================================
 # DASHBOARD SETTINGS
@@ -71,7 +71,10 @@ TRAFFIC_CLASSES = ["dos", "normal", "probe", "r2l", "u2r"]
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE = LOGS_DIR / "traffic_classifier.log"
+LOG_API_FILE = LOGS_DIR / "api.log"
+LOG_PREDICTIONS_FILE = LOGS_DIR / "predictions.log"
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOG_JSON_FORMAT = '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s"}'
 
 # ============================================================================
 # DATABASE SETTINGS (Optional)
@@ -84,10 +87,47 @@ USE_DATABASE = os.getenv("USE_DATABASE", "False").lower() == "true"
 # CORS SETTINGS
 # ============================================================================
 
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+# Default origins - only localhost for development
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:8501",
+    "http://127.0.0.1:8501",
+    "http://localhost:3000",  # For future React frontend
+    "http://127.0.0.1:3000"
+]
+
+# Get from environment, use defaults if not specified (more secure)
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", ",".join(DEFAULT_CORS_ORIGINS)).split(",")
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS]
 CORS_CREDENTIALS = os.getenv("CORS_CREDENTIALS", "True").lower() == "true"
-CORS_METHODS = os.getenv("CORS_METHODS", "*").split(",")
-CORS_HEADERS = os.getenv("CORS_HEADERS", "*").split(",")
+CORS_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+CORS_HEADERS = ["Content-Type", "Authorization"]
+
+# ============================================================================
+# SECURITY SETTINGS
+# ============================================================================
+
+# API Key for authentication
+API_KEY = os.getenv("API_KEY", "dev-key-change-in-production")
+API_KEY_HEADER = "X-API-Key"
+
+# Allowed traffic classes for validation
+ALLOWED_TRAFFIC_CLASSES = ["dos", "normal", "probe", "r2l", "u2r"]
+
+# Feature validation ranges (min, max)
+FEATURE_RANGES = {
+    "duration": (0, 86400),  # 0 to 24 hours
+    "src_bytes": (0, 10000000),  # 0 to 10 MB
+    "dst_bytes": (0, 10000000),
+    "count": (1, 511),
+    "srv_count": (1, 511),
+    "serror_rate": (0.0, 1.0),
+    "srv_serror_rate": (0.0, 1.0),
+    "rerror_rate": (0.0, 1.0),
+    "srv_rerror_rate": (0.0, 1.0),
+    "same_srv_rate": (0.0, 1.0),
+    "dst_host_count": (1, 255),
+    "dst_host_srv_count": (1, 255),
+}
 
 # ============================================================================
 # DEMO MODE (Synthetic Data)

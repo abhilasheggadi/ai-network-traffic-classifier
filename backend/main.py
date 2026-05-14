@@ -3,22 +3,25 @@ FastAPI Backend - Network Traffic Classifier
 Prediction API for the trained model
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, Field
 import joblib
 import numpy as np
 from datetime import datetime
 from pathlib import Path
 import json
 import sys
+import logging
+import logging.handlers
 
 # Add project root to path for config imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
     MODEL_PATH, SCALER_PATH, ENCODER_PATH, METADATA_PATH,
     CORS_ORIGINS, CORS_CREDENTIALS, CORS_METHODS, CORS_HEADERS,
-    TRAFFIC_CLASSES
+    TRAFFIC_CLASSES, API_KEY, API_KEY_HEADER, FEATURE_RANGES,
+    LOG_API_FILE, LOG_PREDICTIONS_FILE, LOG_LEVEL, LOG_FORMAT
 )
 
 # Initialize FastAPI app
@@ -27,6 +30,57 @@ app = FastAPI(
     description="ML-powered network traffic classification API",
     version="1.0.0"
 )
+
+# ============================================================================
+# LOGGING SETUP
+# ============================================================================
+
+def setup_logging():
+    """Configure structured logging"""
+    # Create logs directory
+    LOG_API_FILE.parent.mkdir(exist_ok=True)
+    
+    # API Logger
+    api_logger = logging.getLogger("api")
+    api_logger.setLevel(logging.INFO)
+    
+    # File handler for API logs
+    api_handler = logging.handlers.RotatingFileHandler(
+        LOG_API_FILE, maxBytes=10485760, backupCount=5  # 10MB per file, keep 5
+    )
+    api_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    api_logger.addHandler(api_handler)
+    
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, LOG_LEVEL))
+    console_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    api_logger.addHandler(console_handler)
+    
+    # Predictions Logger (audit trail)
+    pred_logger = logging.getLogger("predictions")
+    pred_logger.setLevel(logging.INFO)
+    
+    pred_handler = logging.handlers.RotatingFileHandler(
+        LOG_PREDICTIONS_FILE, maxBytes=10485760, backupCount=5
+    )
+    pred_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    pred_logger.addHandler(pred_handler)
+    
+    return api_logger, pred_logger
+
+api_logger, pred_logger = setup_logging()
+
+# ============================================================================
+# AUTHENTICATION
+# ============================================================================
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    """Verify API key for protected endpoints"""
+    if not x_api_key or x_api_key != API_KEY:
+        api_logger.warning(f"Unauthorized API access attempt. Key: {x_api_key[:10] if x_api_key else 'None'}...")
+        raise HTTPException(status_code=403, detail="Invalid or missing API key")
+    return x_api_key
 
 # CORS middleware - allow requests from dashboard
 app.add_middleware(
@@ -49,47 +103,93 @@ model_loaded = False
 # ============================================================================
 
 class PredictionRequest(BaseModel):
-    """Request model for traffic prediction"""
-    duration: float
-    protocol_type: str
-    service: str
-    flag: str
-    src_bytes: float
-    dst_bytes: float
-    land: int
-    wrong_fragment: int
-    urgent: int
-    hot: int
-    num_failed_logins: int
-    logged_in: int
-    num_compromised: int
-    root_shell: int
-    su_attempted: int
-    num_root: int
-    num_file_creations: int
-    num_shells: int
-    num_access_files: int
-    num_outbound_cmds: int
-    is_host_login: int
-    is_guest_login: int
-    count: int
-    srv_count: int
-    serror_rate: float
-    srv_serror_rate: float
-    rerror_rate: float
-    srv_rerror_rate: float
-    same_srv_rate: float
-    same_ctry_rate: float
-    dst_host_count: int
-    dst_host_srv_count: int
-    dst_host_same_srv_rate: float
-    dst_host_diff_srv_rate: float
-    dst_host_same_src_port_rate: float
-    dst_host_srv_diff_host_rate: float
-    dst_host_serror_rate: float
-    dst_host_srv_serror_rate: float
-    dst_host_rerror_rate: float
-    dst_host_srv_rerror_rate: float
+    """Request model for traffic prediction with validation"""
+    duration: float = Field(..., ge=0, le=86400, description="Duration in seconds (0-86400)")
+    protocol_type: str = Field(..., description="Protocol type (tcp/udp/icmp)")
+    service: str = Field(..., description="Service type")
+    flag: str = Field(..., description="Connection flag")
+    src_bytes: float = Field(..., ge=0, le=10000000, description="Source bytes")
+    dst_bytes: float = Field(..., ge=0, le=10000000, description="Destination bytes")
+    land: int = Field(..., ge=0, le=1, description="Same src/dst flag")
+    wrong_fragment: int = Field(..., ge=0, le=100, description="Wrong fragments")
+    urgent: int = Field(..., ge=0, le=100, description="Urgent flags")
+    hot: int = Field(..., ge=0, le=100, description="Hot indicators")
+    num_failed_logins: int = Field(..., ge=0, le=5, description="Failed login attempts")
+    logged_in: int = Field(..., ge=0, le=1, description="Logged in flag")
+    num_compromised: int = Field(..., ge=0, le=1000, description="Compromised count")
+    root_shell: int = Field(..., ge=0, le=1, description="Root shell flag")
+    su_attempted: int = Field(..., ge=0, le=1, description="Su attempt flag")
+    num_root: int = Field(..., ge=0, le=1000, description="Root count")
+    num_file_creations: int = Field(..., ge=0, le=1000, description="File creations")
+    num_shells: int = Field(..., ge=0, le=1000, description="Shell count")
+    num_access_files: int = Field(..., ge=0, le=1000, description="Access files count")
+    num_outbound_cmds: int = Field(..., ge=0, le=1000, description="Outbound commands")
+    is_host_login: int = Field(..., ge=0, le=1, description="Host login flag")
+    is_guest_login: int = Field(..., ge=0, le=1, description="Guest login flag")
+    count: int = Field(..., ge=1, le=511, description="Connection count")
+    srv_count: int = Field(..., ge=1, le=511, description="Service count")
+    serror_rate: float = Field(..., ge=0.0, le=1.0, description="Service error rate")
+    srv_serror_rate: float = Field(..., ge=0.0, le=1.0, description="Service error rate")
+    rerror_rate: float = Field(..., ge=0.0, le=1.0, description="Rejected rate")
+    srv_rerror_rate: float = Field(..., ge=0.0, le=1.0, description="Service rejected rate")
+    same_srv_rate: float = Field(..., ge=0.0, le=1.0, description="Same service rate")
+    same_ctry_rate: float = Field(..., ge=0.0, le=1.0, description="Same country rate")
+    dst_host_count: int = Field(..., ge=1, le=255, description="Destination host count")
+    dst_host_srv_count: int = Field(..., ge=1, le=255, description="Destination service count")
+    dst_host_same_srv_rate: float = Field(..., ge=0.0, le=1.0, description="Same service rate")
+    dst_host_diff_srv_rate: float = Field(..., ge=0.0, le=1.0, description="Different service rate")
+    dst_host_same_src_port_rate: float = Field(..., ge=0.0, le=1.0, description="Same source port rate")
+    dst_host_srv_diff_host_rate: float = Field(..., ge=0.0, le=1.0, description="Different host rate")
+    dst_host_serror_rate: float = Field(..., ge=0.0, le=1.0, description="Service error rate")
+    dst_host_srv_serror_rate: float = Field(..., ge=0.0, le=1.0, description="Service error rate")
+    dst_host_rerror_rate: float = Field(..., ge=0.0, le=1.0, description="Rejected rate")
+    dst_host_srv_rerror_rate: float = Field(..., ge=0.0, le=1.0, description="Service rejected rate")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "duration": 120,
+                "protocol_type": "tcp",
+                "service": "http",
+                "flag": "S2",
+                "src_bytes": 5000,
+                "dst_bytes": 4000,
+                "land": 0,
+                "wrong_fragment": 0,
+                "urgent": 0,
+                "hot": 0,
+                "num_failed_logins": 0,
+                "logged_in": 1,
+                "num_compromised": 0,
+                "root_shell": 0,
+                "su_attempted": 0,
+                "num_root": 0,
+                "num_file_creations": 0,
+                "num_shells": 0,
+                "num_access_files": 0,
+                "num_outbound_cmds": 0,
+                "is_host_login": 0,
+                "is_guest_login": 0,
+                "count": 5,
+                "srv_count": 4,
+                "serror_rate": 0.02,
+                "srv_serror_rate": 0.02,
+                "rerror_rate": 0.01,
+                "srv_rerror_rate": 0.01,
+                "same_srv_rate": 0.95,
+                "same_ctry_rate": 0.98,
+                "dst_host_count": 10,
+                "dst_host_srv_count": 8,
+                "dst_host_same_srv_rate": 0.9,
+                "dst_host_diff_srv_rate": 0.1,
+                "dst_host_same_src_port_rate": 0.95,
+                "dst_host_srv_diff_host_rate": 0.05,
+                "dst_host_serror_rate": 0.01,
+                "dst_host_srv_serror_rate": 0.01,
+                "dst_host_rerror_rate": 0.01,
+                "dst_host_srv_rerror_rate": 0.01
+            }
+        }
 
 class PredictionResponse(BaseModel):
     """Response model for predictions"""
@@ -158,20 +258,25 @@ async def health_check():
     )
 
 @app.post("/predict", response_model=PredictionResponse, tags=["prediction"])
-async def predict(request: PredictionRequest):
+async def predict(request: PredictionRequest, api_key: str = Depends(verify_api_key)):
     """
     Predict traffic classification
+    
+    **Authentication:** Requires X-API-Key header
     
     Returns the predicted traffic type and confidence score
     """
     
     if not model_loaded or model is None:
+        api_logger.error("Model not loaded when predict called")
         raise HTTPException(
             status_code=503,
             detail="Model not loaded. Please check server logs."
         )
     
     try:
+        api_logger.info(f"Processing prediction request for {request.protocol_type}/{request.service}")
+        
         # Convert request to array in correct order
         features_array = np.array([[
             request.duration,
@@ -250,6 +355,10 @@ async def predict(request: PredictionRequest):
         }
         confidence = float(np.max(probabilities))
         
+        # Log prediction
+        pred_logger.info(f"Prediction: {prediction_label} (confidence: {confidence:.2%}) | {request.protocol_type}/{request.service}")
+        api_logger.info(f"Prediction successful: {prediction_label} ({confidence:.2%})")
+        
         return PredictionResponse(
             prediction=prediction_label,
             confidence=confidence,
@@ -257,7 +366,11 @@ async def predict(request: PredictionRequest):
             probabilities=proba_dict
         )
         
+    except ValueError as e:
+        api_logger.error(f"Input validation error: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Invalid input: {str(e)}")
     except Exception as e:
+        api_logger.error(f"Prediction error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
 
 @app.get("/info", tags=["info"])

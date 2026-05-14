@@ -134,6 +134,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 API_BASE_URL = "http://127.0.0.1:8000"
+API_KEY = "dev-key-change-in-production"  # Default dev key
+API_HEADERS = {"X-API-Key": API_KEY}
 
 # Sidebar
 with st.sidebar:
@@ -466,7 +468,7 @@ elif page == "Predictions":
                 "dst_host_srv_rerror_rate": 0.01
             }
             
-            response = requests.post(f"{API_BASE_URL}/predict", json=payload, timeout=5)
+            response = requests.post(f"{API_BASE_URL}/predict", json=payload, headers=API_HEADERS, timeout=5)
             
             if response.status_code == 200:
                 result = response.json()

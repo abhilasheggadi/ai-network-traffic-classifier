@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: network-classifier-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_RELOAD=False
+      - API_LOG_LEVEL=info
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev-key-change-in-production}
+      - CORS_ORIGINS=http://localhost:8501,http://127.0.0.1:8501
+      - DEMO_MODE=True
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./model/saved_models:/app/model/saved_models
+    command: >
+      python -m uvicorn backend.main:app 
+      --host 0.0.0.0 
+      --port 8000 
+      --log-level info
+    restart: unless-stopped
+    networks:
+      - network-classifier
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Streamlit Dashboard
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: network-classifier-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - API_KEY=${API_KEY:-dev-key-change-in-production}
+    volumes:
+      - ./src/dashboard:/app/src/dashboard
+      - ./logs:/app/logs
+      - ./data:/app/data
+    command: >
+      streamlit run src/dashboard/app.py 
+      --server.port 8501 
+      --server.address 0.0.0.0
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - network-classifier
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  network-classifier:
+    driver: bridge
+
+volumes:
+  logs:
+  data:
