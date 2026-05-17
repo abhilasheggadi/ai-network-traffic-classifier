@@ -14,8 +14,8 @@ Complete setup instructions for running the AI Network Traffic Classifier locall
 
 ### 1.1 Clone the Repository
 ```bash
-git clone https://github.com/GulrezQayyum/Networking.git
-cd Networking
+git clone https://github.com/GulrezQayyum/network-traffic-classifier-model.git
+cd network-traffic-classifier-model
 ```
 
 ### 1.2 Create Virtual Environment

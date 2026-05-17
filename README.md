@@ -89,8 +89,8 @@ This project uses **Machine Learning** to analyze network traffic and detect mal
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/GulrezQayyum/Networking.git
-cd Networking
+git clone https://github.com/GulrezQayyum/network-traffic-classifier-model.git
+cd network-traffic-classifier-model
 
 # 2. Start services
 docker-compose up -d
@@ -106,8 +106,8 @@ docker-compose up -d
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/GulrezQayyum/Networking.git
-cd Networking
+git clone https://github.com/GulrezQayyum/network-traffic-classifier-model.git
+cd network-traffic-classifier-model
 
 # 2. Create virtual environment
 python -m venv venv
@@ -159,8 +159,8 @@ Before you start, make sure you have:
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/GulrezQayyum/Networking.git
-cd Networking
+git clone https://github.com/GulrezQayyum/network-traffic-classifier-model.git
+cd network-traffic-classifier-model
 ```
 
 #### 2. Set Up Environment Variables (Optional)
@@ -289,8 +289,8 @@ Think of Docker as a box 📦 that contains your entire application with all dep
 ssh user@your-server.com
 
 # Clone repository
-git clone https://github.com/GulrezQayyum/Networking.git
-cd Networking
+git clone https://github.com/GulrezQayyum/network-traffic-classifier-model.git
+cd network-traffic-classifier-model
 
 # Create .env with production settings
 cat > .env << EOF

@@ -61,8 +61,8 @@ This version includes the following production-ready improvements:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/GulrezQayyum/Networking.git
-cd Networking
+git clone https://github.com/GulrezQayyum/network-traffic-classifier-model.git
+cd network-traffic-classifier-model
 ```
 
 2. **Create environment file (optional)**
