@@ -133,7 +133,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-API_BASE_URL = "http://127.0.0.1:8000"
+API_BASE_URL = "http://backend:8000"
 API_KEY = "dev-key-change-in-production"  # Default dev key
 API_HEADERS = {"X-API-Key": API_KEY}
 

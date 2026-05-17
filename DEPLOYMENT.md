@@ -1,4 +1,6 @@
-# 🚀 Deployment Guide - AI Network Traffic Classifier
+Name                       Command                 State      Ports
+----------------------------------------------------------------------------
+network-classifier-api   python -m uvicorn backend. ...   Restarting       # 🚀 Deployment Guide - AI Network Traffic Classifier
 
 Complete guide for deploying the AI Network Traffic Classifier using Docker.
 
