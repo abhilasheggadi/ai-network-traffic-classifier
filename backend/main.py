@@ -64,14 +64,22 @@ api_logger, pred_logger = setup_logging()
 # AUTHENTICATION (Bypassed if no API_KEY set)
 # ============================================================================
 
-# async def verify_api_key(x_api_key: str = Header(None)):
-#     """Bypass authentication if API_KEY is not configured."""
-#     if not API_KEY:
-#         return x_api_key
-#     if not x_api_key or x_api_key != API_KEY:
-#         api_logger.warning(f"Invalid API key: {x_api_key[:10] if x_api_key else 'None'}...")
-#         raise HTTPException(status_code=403, detail="Invalid or missing API key")
-#     return x_api_key
+import os
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    """Bypass authentication if ENV is development, otherwise verify key."""
+    # The environment bypass requested in the issue:
+    if os.getenv("ENV") == "development":
+        return "local_dev_bypass"
+
+    if not API_KEY:
+        return x_api_key
+        
+    if not x_api_key or x_api_key != API_KEY:
+        api_logger.warning(f"Invalid API key: {x_api_key[:10] if x_api_key else 'None'}...")
+        raise HTTPException(status_code=403, detail="Invalid or missing API key")
+    return x_api_key
+
 
 # CORS middleware
 app.add_middleware(
